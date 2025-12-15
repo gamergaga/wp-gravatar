@@ -3,8 +3,13 @@ jQuery(document).ready(function($) {
     var uploadField = $('#lca-upload');
     var preview = $('#lca-preview');
     var feedback = $('#lca-feedback');
+    var initialPreview = preview.html();
+    var initialFeedback = feedback.text();
     var MAX_SIZE = 2 * 1024 * 1024; // 2MB
     var allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+
+    var existingAvatar = preview.data('current-avatar');
+    var existingMessage = feedback.data('current-message');
 
     // Ensure the form can carry files even if inline script fails.
     commentForm.attr('enctype', 'multipart/form-data');
@@ -14,30 +19,38 @@ jQuery(document).ready(function($) {
         feedback.toggleClass('is-error', !!isError);
     }
 
-    function clearPreview() {
+    function resetToInitial() {
+        if (existingAvatar) {
+            preview.html(initialPreview);
+            feedback.text(existingMessage);
+            feedback.removeClass('is-error');
+            return;
+        }
+
         preview.empty();
+        feedback.text('');
+        feedback.removeClass('is-error');
     }
 
     uploadField.on('change', function(e) {
         var file = e.target.files[0];
 
         if (!file) {
-            clearPreview();
-            showFeedback('', false);
+            resetToInitial();
             return;
         }
 
         if (allowedTypes.indexOf(file.type) === -1) {
             showFeedback('Please choose a JPG, PNG, or GIF image.', true);
             uploadField.val('');
-            clearPreview();
+            resetToInitial();
             return;
         }
 
         if (file.size > MAX_SIZE) {
             showFeedback('Your photo is too large. Please stay under 2MB.', true);
             uploadField.val('');
-            clearPreview();
+            resetToInitial();
             return;
         }
 
@@ -52,4 +65,9 @@ jQuery(document).ready(function($) {
         };
         reader.readAsDataURL(file);
     });
+
+    // If a saved avatar exists, make sure we show it as the starting point.
+    if (existingAvatar) {
+        showFeedback(existingMessage, false);
+    }
 });

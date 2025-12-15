@@ -42,21 +42,64 @@ class Local_Comment_Avatars {
      * Renders the file input field on the comment form.
      */
     public function add_avatar_field() {
+        $current_avatar_id  = 0;
+        $current_avatar_url = '';
+
+        if ( is_user_logged_in() ) {
+            $current_avatar_id = (int) get_user_meta( get_current_user_id(), 'lca_profile_pic', true );
+            if ( $current_avatar_id ) {
+                $current_avatar_url = wp_get_attachment_image_url( $current_avatar_id, 'thumbnail' );
+            }
+        }
+
+        $has_avatar = ! empty( $current_avatar_url );
+
         ?>
-        <div class="lca-avatar-wrapper">
+        <div class="lca-avatar-wrapper<?php echo $has_avatar ? ' lca-avatar-wrapper--has-avatar' : ''; ?>">
             <div class="lca-heading">
                 <p class="lca-title"><?php esc_html_e( 'Add a profile photo', 'lca' ); ?></p>
                 <p class="lca-helper"><?php esc_html_e( 'Optional — looks great next to your comment.', 'lca' ); ?></p>
             </div>
 
+            <?php if ( $has_avatar && $current_avatar_url ) : ?>
+                <div class="lca-current-avatar" aria-live="polite" aria-atomic="true">
+                    <img src="<?php echo esc_url( $current_avatar_url ); ?>" alt="<?php esc_attr_e( 'Your current profile photo', 'lca' ); ?>" />
+                    <p class="lca-current-avatar__text"><?php esc_html_e( 'You already have a profile photo. Use the button below if you want to change it.', 'lca' ); ?></p>
+                </div>
+            <?php endif; ?>
+
             <label class="lca-input" for="lca-upload">
-                <input type="file" name="lca-upload" id="lca-upload" accept="image/png, image/jpeg, image/gif" />
-                <span class="lca-input__hint"><?php esc_html_e( 'Drag & drop or browse an image', 'lca' ); ?></span>
+                <input
+                    type="file"
+                    name="lca-upload"
+                    id="lca-upload"
+                    accept="image/png, image/jpeg, image/gif"
+                    data-has-avatar="<?php echo $has_avatar ? '1' : '0'; ?>"
+                />
+                <span class="lca-input__hint"><?php echo $has_avatar ? esc_html__( 'Change your profile photo', 'lca' ) : esc_html__( 'Drag & drop or browse an image', 'lca' ); ?></span>
             </label>
 
             <div class="lca-preview-row">
-                <div id="lca-preview" class="lca-preview" aria-live="polite" aria-atomic="true"></div>
-                <div id="lca-feedback" class="lca-feedback" role="status" aria-live="polite"></div>
+                <div
+                    id="lca-preview"
+                    class="lca-preview"
+                    aria-live="polite"
+                    aria-atomic="true"
+                    data-current-avatar="<?php echo esc_attr( $current_avatar_url ); ?>"
+                >
+                    <?php if ( $has_avatar && $current_avatar_url ) : ?>
+                        <img src="<?php echo esc_url( $current_avatar_url ); ?>" alt="<?php esc_attr_e( 'Current profile photo preview', 'lca' ); ?>" />
+                    <?php endif; ?>
+                </div>
+                <div
+                    id="lca-feedback"
+                    class="lca-feedback"
+                    role="status"
+                    aria-live="polite"
+                    data-current-message="<?php echo esc_attr__( 'Using your saved profile photo. Upload a new one to replace it.', 'lca' ); ?>"
+                >
+                    <?php echo $has_avatar ? esc_html__( 'Using your saved profile photo. Upload a new one to replace it.', 'lca' ) : ''; ?>
+                </div>
             </div>
 
             <p class="lca-note"><?php esc_html_e( 'Allowed: JPG, PNG, GIF. Max 2MB. Square images work best.', 'lca' ); ?></p>
@@ -77,7 +120,17 @@ class Local_Comment_Avatars {
         }
 
         if ( ! isset( $_POST['lca_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['lca_nonce'] ) ), 'lca-upload' ) ) {
-            wp_die( esc_html__( 'Security check failed. Please try again.', 'lca' ) );
+            // Fail gracefully: skip the upload but still let the comment through.
+            unset( $_FILES['lca-upload'] );
+
+            add_filter(
+                'comment_post_redirect',
+                static function ( $location ) {
+                    return add_query_arg( 'lca', 'nonce-failed', $location );
+                }
+            );
+
+            return $commentdata;
         }
 
         $file = $_FILES['lca-upload'];

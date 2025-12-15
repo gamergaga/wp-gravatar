@@ -5,6 +5,11 @@
     border: 1px solid #e2e8f0;
     border-radius: 8px;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    position: relative;
+}
+
+.lca-avatar-wrapper--has-avatar {
+    border-style: solid;
 }
 
 .lca-heading {
@@ -37,6 +42,10 @@
     background: #fff;
     cursor: pointer;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    max-width: fit-content;
+    isolation: isolate;
 }
 
 .lca-input:hover,
@@ -46,13 +55,20 @@
 }
 
 .lca-input input[type="file"] {
-    flex: 0 0 auto;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 1;
 }
 
 .lca-input__hint {
     color: #1f2937;
     font-weight: 600;
     font-size: 14px;
+    display: block;
 }
 
 .lca-preview-row {
@@ -64,6 +80,29 @@
 
 .lca-preview {
     min-height: 64px;
+}
+
+.lca-current-avatar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    margin-bottom: 12px;
+}
+
+.lca-current-avatar img {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.lca-current-avatar__text {
+    margin: 0;
+    color: #111827;
 }
 
 .lca-feedback {
