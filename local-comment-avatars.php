@@ -120,7 +120,17 @@ class Local_Comment_Avatars {
         }
 
         if ( ! isset( $_POST['lca_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['lca_nonce'] ) ), 'lca-upload' ) ) {
-            wp_die( esc_html__( 'Security check failed. Please try again.', 'lca' ) );
+            // Fail gracefully: skip the upload but still let the comment through.
+            unset( $_FILES['lca-upload'] );
+
+            add_filter(
+                'comment_post_redirect',
+                static function ( $location ) {
+                    return add_query_arg( 'lca', 'nonce-failed', $location );
+                }
+            );
+
+            return $commentdata;
         }
 
         $file = $_FILES['lca-upload'];
